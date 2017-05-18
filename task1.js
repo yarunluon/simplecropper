@@ -31,19 +31,19 @@
 function sizeimage(canvasWidth, canvasHeight, imageAspect)
 {
     // TODO: fill in here
-    const imagex = imageAspect * canvasHeight;
-    const imagey = canvasWidth / imageAspect;
+  const imagex = imageAspect * canvasHeight;
+  const imagey = canvasWidth / imageAspect;
 
-    const sizex = imagex > canvasWidth ? canvasWidth : imagex;
-    const sizey = imagey > canvasHeight ? canvasHeight : imagey;
-    const xpos = (canvasWidth - sizex) / 2;
-    const ypos = (canvasHeight - sizey) / 2;
+  const sizex = Math.min(canvasWidth, imagex);
+  const sizey = Math.min(canvasHeight, imagey);
+  const xpos = (canvasWidth - sizex) / 2;
+  const ypos = (canvasHeight - sizey) / 2;
 
-    //final image position and size
-    return [xpos, ypos, sizex, sizey];
+  // final image position and size
+  return [xpos, ypos, sizex, sizey];
 }
 
 console.log(sizeimage(50, 200, 1));
 console.log(sizeimage(100, 100, 1));
-console.log(sizeimage(100, 100, 16/9));
-console.log(sizeimage(100, 100, 4/3));
+console.log(sizeimage(100, 100, 16 / 9));
+console.log(sizeimage(100, 100, 4 / 3));
