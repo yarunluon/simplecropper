@@ -29,7 +29,7 @@
 
 
 function sizeimage(canvasWidth, canvasHeight, imageAspect) {
-    // TODO: fill in here
+  // TODO: fill in here
   const imagex = imageAspect * canvasHeight;
   const imagey = canvasWidth / imageAspect;
 
