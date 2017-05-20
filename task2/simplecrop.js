@@ -1,6 +1,4 @@
-// From Task 1
-function sizeimage(canvasWidth, canvasHeight, imageAspect) {
-    // TODO: fill in here
+const sizeimage = (canvasWidth, canvasHeight, imageAspect) => {
   const imagex = imageAspect * canvasHeight;
   const imagey = canvasWidth / imageAspect;
 
@@ -11,7 +9,7 @@ function sizeimage(canvasWidth, canvasHeight, imageAspect) {
 
   // final image position and size
   return [xpos, ypos, sizex, sizey];
-}
+};
 
 $(document).ready(() => {
 /*  TODO:
@@ -49,14 +47,18 @@ $(document).ready(() => {
 
   // jquery elements
   const $button = $('button.docrop');
-  const $cropTargetNE = $('.resize.ne');
-  const $cropTargetSW = $('.resize.sw');
-  const $cropArea = $('.croparea');
   const $canvas = $('#cropimg');
   const $container = $('.container');
+
+  const cropTargetNE = document.querySelector('.resize.ne');
+  const cropTargetSW = document.querySelector('.resize.sw');
+  const cropArea = document.querySelector('.croparea');
   const context = $canvas.get(0).getContext('2d');
   const marginLeft = parseInt($container.css('margin-left'), 10);
   const marginTop = parseInt($container.css('margin-top'), 10);
+
+  const minWidth = 30;
+  const minHeight = 30;
 
   // Initial starting value of mouse
   let startX = 0;
@@ -94,117 +96,9 @@ $(document).ready(() => {
     image.src = 'mother-elephant-baby-elephant-calf.jpg';
   };
 
-  /* *********************************************************************
-  * Mousemove events
-  * @todo: Abstract the events so they can be reused across both targets
-  * @todo: Add minimum box size boundaries
-  ************************************************************************/
-  $cropTargetNE.on('mousemove', (event) => {
+  function cropAreaMouseMove(event) {
     event.stopPropagation();
-    const { originalEvent: { x, y }, target } = event;
-    const { parentNode: { offsetLeft } } = target;
-
-    if ((x === 0 && y === 0) || !mousedown) {
-      return;
-    }
-
-    const top = Math.max(0, y - marginTop);
-    const middleY = swy - top;
-    const rightBoundry = Math.min(x, marginLeft + $container.width());
-
-    const width = ((rightBoundry - marginLeft - offsetLeft) / $container.width()) * 100;
-    const height = (middleY / $container.height()) * 100;
-
-    target.parentNode.style.width = `${width}%`;
-    target.parentNode.style.height = `${height}%`;
-    target.parentNode.style.top = `${top}px`;
-  });
-
-  $cropTargetSW.on('mousemove', (event) => {
-    event.stopPropagation();
-    const { originalEvent: { x, y }, target } = event;
-    const { parentNode: { offsetTop } } = target;
-
-    if ((x === 0 && y === 0) || !mousedown) {
-      return;
-    }
-
-    const left = Math.max(0, x - marginLeft);
-    const nextWidth = nex - left;
-    const bottomBoundry = Math.min(y, marginTop + $container.height());
-
-    const width = (nextWidth / $container.width()) * 100;
-    const height = ((bottomBoundry - marginTop - offsetTop) / $container.height()) * 100;
-
-    target.parentNode.style.width = `${width}%`;
-    target.parentNode.style.height = `${height}%`;
-    target.parentNode.style.left = `${left}px`;
-  });
-
-
-  /* ***************************************************************************
-  * Mousedown events
-  * @todo: Consider reusing the same callback or a function that generates the same callback
-  * @Todo: Consider adding the mousemove event on mousedown
-  ******************************************************************************/
-  $cropTargetNE.on('mousedown', (event) => {
-    event.stopPropagation();
-    const { originalEvent: { x, y } } = event;
-
-    // Update variables used for calculation
-    startX = x;
-    startY = y;
-    mousedown = true;
-  });
-
-  $cropTargetSW.on('mousedown', (event) => {
-    event.stopPropagation();
-    const { originalEvent: { x, y } } = event;
-
-    // Update variables used for calculation
-    startX = x;
-    startY = y;
-    mousedown = true;
-  });
-
-  /* ***************************************************************************
-  * Mouseup events
-  * @todo: Consider reusing the same callback or a function that generates the same callback
-  * @Todo: Consider removing the mousemove event on mouseup
-  ******************************************************************************/
-  $cropTargetNE.on('mouseup', (event) => {
-    event.stopPropagation();
-
-    const { originalEvent: { x, y }, target } = event;
-    const { parentNode: { offsetLeft, offsetTop, clientHeight, clientWidth } } = target;
-
-    mousedown = false;
-    nex = x - marginLeft;
-    ney = y - marginTop;
-
-    drawThumbnail(offsetLeft, offsetTop, clientWidth, clientHeight);
-  });
-
-  $cropTargetSW.on('mouseup', (event) => {
-    event.stopPropagation();
-
-    const { originalEvent: { x, y }, target } = event;
-    const { parentNode: { offsetLeft, offsetTop, clientHeight, clientWidth } } = target;
-
-    mousedown = false;
-    swx = x - marginLeft;
-    swy = y - marginTop;
-
-    drawThumbnail(offsetLeft, offsetTop, clientWidth, clientHeight);
-  });
-
-
-  /* ************************************************************
-  * Events for crop area
-  ***************************************************************/
-  $cropArea.on('mousemove', (event) => {
-    event.stopPropagation();
-    const { originalEvent: { x, y }, target } = event;
+    const { x, y, target } = event;
     const { offsetLeft, offsetTop, offsetWidth, offsetHeight } = target;
 
     if ((x === 0 && y === 0) || !mousedown) {
@@ -222,17 +116,11 @@ $(document).ready(() => {
 
     startX = x;
     startY = y;
-  });
+  }
 
-  $cropArea.on('mousedown', (event) => {
-    event.stopPropagation();
-    const { originalEvent: { x, y } } = event;
-    startX = x;
-    startY = y;
-    mousedown = true;
-  });
-
-  $cropArea.on('mouseup', (event) => {
+  function cropAreaMouseUp(event) {
+    console.log('crop area mouseup happened');
+    // event.stopPropagation();
     const {
       target: { offsetLeft, offsetTop, offsetWidth, offsetHeight, clientWidth, clientHeight },
     } = event;
@@ -244,7 +132,184 @@ $(document).ready(() => {
     swy = offsetTop + offsetHeight;
 
     drawThumbnail(offsetLeft, offsetTop, clientWidth, clientHeight);
-  });
+    document.removeEventListener('mousemove', cropAreaMouseMove);
+  }
+
+  function neMouseMove(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const { x, y } = event;
+    const { offsetLeft, offsetHeight, offsetTop, offsetWidth } = cropArea;
+    console.log('ne', offsetLeft, offsetTop, offsetHeight, offsetWidth);
+    console.log(x, y);
+    if (!mousedown) {
+      return;
+    }
+
+    // Top
+    const topLower = y - marginTop;
+    const topUpper = (offsetHeight + offsetTop) - minHeight;
+    const top = Math.min(topUpper, Math.max(0, topLower));
+
+    // Height
+    const middleY = swy - top;
+    const height = (middleY / $container.height()) * 100;
+
+    // Width
+    const rightLower = marginLeft + offsetLeft + minWidth;
+    const rightUpper = marginLeft + $container.width();
+    const rightBoundry = Math.max(rightLower, Math.min(x, rightUpper));
+    const width = ((rightBoundry - marginLeft - offsetLeft) / $container.width()) * 100;
+
+    cropArea.style.width = `${width}%`;
+    cropArea.style.height = `${height}%`;
+    cropArea.style.top = `${top}px`;
+  }
+
+  function swMouseMove(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const { x, y } = event;
+    const { offsetTop, offsetLeft, offsetWidth, offsetHeight } = cropArea;
+    console.log('sw', offsetLeft, offsetTop, offsetHeight, offsetWidth);
+
+    if (!mousedown) {
+      return;
+    }
+
+    // Left
+    const leftUpper = (offsetLeft + offsetWidth) - minWidth;
+    const leftLower = x - marginLeft;
+    const left = Math.min(Math.max(0, leftLower), leftUpper);
+
+    // Height
+    const bottomLower = marginTop + $container.height();
+    const bottomUpper = marginTop + offsetTop + minHeight;
+    const bottomBoundry = Math.max(bottomUpper, Math.min(y, bottomLower));
+    const height = ((bottomBoundry - marginTop - offsetTop) / $container.height()) * 100;
+
+    // Width
+    const nextWidth = nex - left;
+    const width = (nextWidth / $container.width()) * 100;
+
+    cropArea.style.width = `${width}%`;
+    cropArea.style.height = `${height}%`;
+    cropArea.style.left = `${left}px`;
+  }
+
+  function neMouseUp(event) {
+    console.log('ne mouseup happened');
+
+    const { x, y } = event;
+    const { offsetLeft, offsetTop, clientHeight, clientWidth } = cropArea;
+
+    mousedown = false;
+    nex = x - marginLeft;
+    ney = y - marginTop;
+
+    drawThumbnail(offsetLeft, offsetTop, clientWidth, clientHeight);
+
+    document.removeEventListener('mousemove', neMouseMove);
+  }
+
+  function swMouseUp(event) {
+    console.log('sw mouseup happened');
+
+    const { x, y } = event;
+    const { offsetLeft, offsetTop, clientHeight, clientWidth } = cropArea;
+
+    mousedown = false;
+    swx = x - marginLeft;
+    swy = y - marginTop;
+
+    drawThumbnail(offsetLeft, offsetTop, clientWidth, clientHeight);
+
+    document.removeEventListener('mousemove', swMouseMove);
+  }
+
+  function cropAreaMouseDown(event) {
+    console.log('crop area mousedown happened');
+    // event.stopPropagation();
+    const { x, y } = event;
+    startX = x;
+    startY = y;
+    mousedown = true;
+
+    document.addEventListener('mousemove', cropAreaMouseMove);
+    document.addEventListener('mouseup', cropAreaMouseUp, { once: true });
+  }
+
+  function swMouseDown(event) {
+    console.log('sw mousedown happened');
+
+    event.preventDefault();
+    event.stopPropagation();
+    // cropTargetNE.removeEventListener('mousedown', neMouseDown, true);
+    // cropArea.removeEventListener('mousedown', cropAreaMouseDown);
+    const { x, y } = event;
+
+    // Update variables used for calculation
+    startX = x;
+    startY = y;
+    mousedown = true;
+
+    console.log('sw', 'startX', startX, 'startY', startY, 'mousedown', mousedown);
+    document.addEventListener('mousemove', swMouseMove);
+    document.addEventListener('mouseup', swMouseUp, { once: true });
+  }
+
+  function neMouseDown(event) {
+    console.log('ne mousedown happened');
+
+    event.preventDefault();
+    event.stopPropagation();
+    // cropTargetSW.removeEventListener('mousedown', swMouseDown, true);
+    // cropArea.removeEventListener('mousedown', cropAreaMouseDown);
+    const { x, y } = event;
+
+    // Update variables used for calculation
+    startX = x;
+    startY = y;
+    mousedown = true;
+
+    console.log('ne', 'startX', startX, 'startY', startY, 'mousedown', mousedown);
+    document.addEventListener('mousemove', neMouseMove);
+    document.addEventListener('mouseup', neMouseUp, { once: true });
+  }
+
+  /* *********************************************************************
+  * Mousemove events
+  * @todo: Abstract the events so they can be reused across both targets
+  * @todo: Add minimum box size boundaries
+  ************************************************************************/
+
+
+  /* ***************************************************************************
+  * Mousedown events
+  * @todo: Consider reusing the same callback or a function that generates the same callback
+  * @Todo: Consider adding the mousemove event on mousedown
+  ******************************************************************************/
+  cropTargetNE.addEventListener('mousedown', neMouseDown, true);
+  cropTargetSW.addEventListener('mousedown', swMouseDown, true);
+
+  /* ***************************************************************************
+  * Mouseup events
+  * @todo: Consider reusing the same callback or a function that generates the same callback
+  * @Todo: Consider removing the mousemove event on mouseup
+  ******************************************************************************/
+
+
+  /* ************************************************************
+  * Events for crop area
+  ***************************************************************/
+
+  cropArea.addEventListener('mousedown', cropAreaMouseDown);
+
+  // document.addEventListener('mouseup', () => { mousedown = false; console.log('universal mouseup fired'); });
+
+  // cropArea.addEventListener('mouseup', );
 
   /* *************************************************************************
   * Button to show crop boundaries
