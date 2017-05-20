@@ -1,16 +1,3 @@
-const sizeimage = (canvasWidth, canvasHeight, imageAspect) => {
-  const imagex = imageAspect * canvasHeight;
-  const imagey = canvasWidth / imageAspect;
-
-  const sizex = Math.min(canvasWidth, imagex);
-  const sizey = Math.min(canvasHeight, imagey);
-  const xpos = (canvasWidth - sizex) / 2;
-  const ypos = (canvasHeight - sizey) / 2;
-
-  // final image position and size
-  return [xpos, ypos, sizex, sizey];
-};
-
 $(document).ready(() => {
 /*  TODO:
 *
@@ -70,10 +57,25 @@ $(document).ready(() => {
   // Controls dragging
   let mousedown = false;
 
+  // Gives coordinates for an image to be contained inside a bounding box and centered
+  const containImage = (canvasWidth, canvasHeight, imageAspect) => {
+    const imagex = imageAspect * canvasHeight;
+    const imagey = canvasWidth / imageAspect;
+
+    const sizex = Math.min(canvasWidth, imagex);
+    const sizey = Math.min(canvasHeight, imagey);
+    const xpos = (canvasWidth - sizex) / 2;
+    const ypos = (canvasHeight - sizey) / 2;
+
+    // final image position and size
+    return [xpos, ypos, sizex, sizey];
+  };
+
+  // Updates the thumbnail with the new crop dimensions
   const drawThumbnail = (offsetLeft, offsetTop, clientWidth, clientHeight) => {
     const image = new Image();
 
-    image.onload = () => {
+    image.addEventListener('load', () => {
       const { width, height } = image;
       const hiddenAreaX = (width - $container.width()) / 2;
       const hiddenAreaY = (height - $container.height()) / 2;
@@ -83,31 +85,31 @@ $(document).ready(() => {
       const srcHeight = clientHeight;
 
       const [destX, destY, destWidth, destHeight] =
-        sizeimage($canvas.width(), $canvas.height(), srcWidth / srcHeight);
+        containImage($canvas.width(), $canvas.height(), srcWidth / srcHeight);
 
       context.clearRect(0, 0, $canvas.width(), $canvas.height());
       context
         .drawImage(image, srcX, srcY, srcWidth, srcHeight, destX, destY, destWidth, destHeight);
-    };
+    });
 
     image.src = 'mother-elephant-baby-elephant-calf.jpg';
   };
 
-  /* *********************************************************************
-  * Mousemove events
-  * @todo: Abstract the events so they can be reused across both targets
-  ************************************************************************/
+
+  /**
+   * Callback handler for when the crop area is dragged
+   * @event {Event} - A mouse event
+   **/
   function cropAreaMouseMove(event) {
-    console.log('crop area mousemove');
-
-    event.preventDefault();
-    event.stopPropagation();
-    const { x, y } = event;
-    const { offsetLeft, offsetTop, offsetWidth, offsetHeight } = cropArea;
-
     if (!mousedown) {
       return;
     }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const { x, y } = event;
+    const { offsetLeft, offsetTop, offsetWidth, offsetHeight } = cropArea;
 
     const dx = x - startX;
     const dy = y - startY;
@@ -115,24 +117,27 @@ $(document).ready(() => {
     const left = Math.min(Math.max(0, offsetLeft + dx), $container.width() - offsetWidth);
     const top = Math.min(Math.max(0, offsetTop + dy), $container.height() - offsetHeight);
 
-    cropArea.style.left = `${left}px`;
-    cropArea.style.top = `${top}px`;
-
     startX = x;
     startY = y;
+
+    cropArea.style.left = `${left}px`;
+    cropArea.style.top = `${top}px`;
   }
 
+  /**
+   * Callback handler for when the northeast crop target is dragged
+   * @event {Event} - A mouse event
+   **/
   function neMouseMove(event) {
+    if (!mousedown) {
+      return;
+    }
+
     event.preventDefault();
     event.stopPropagation();
 
     const { x, y } = event;
-    const { offsetLeft, offsetHeight, offsetTop, offsetWidth } = cropArea;
-    console.log('ne', offsetLeft, offsetTop, offsetHeight, offsetWidth);
-
-    if (!mousedown) {
-      return;
-    }
+    const { offsetLeft, offsetHeight, offsetTop } = cropArea;
 
     // Top
     const topLower = y - marginTop;
@@ -149,23 +154,25 @@ $(document).ready(() => {
     const rightBoundry = Math.max(rightLower, Math.min(x, rightUpper));
     const width = ((rightBoundry - marginLeft - offsetLeft) / $container.width()) * 100;
 
-    console.log('top', top, 'width', width, 'height', height);
     cropArea.style.width = `${width}%`;
     cropArea.style.height = `${height}%`;
     cropArea.style.top = `${top}px`;
   }
 
+  /**
+   * Callback handler for when the southwest crop target is dragged
+   * @event {Event} - A mouse event
+   **/
   function swMouseMove(event) {
+    if (!mousedown) {
+      return;
+    }
+
     event.preventDefault();
     event.stopPropagation();
 
     const { x, y } = event;
-    const { offsetTop, offsetLeft, offsetWidth, offsetHeight } = cropArea;
-    console.log('sw', offsetLeft, offsetTop, offsetHeight, offsetWidth);
-
-    if (!mousedown) {
-      return;
-    }
+    const { offsetTop, offsetLeft, offsetWidth } = cropArea;
 
     // Left
     const leftUpper = (offsetLeft + offsetWidth) - minWidth;
@@ -182,18 +189,16 @@ $(document).ready(() => {
     const nextWidth = nex - left;
     const width = (nextWidth / $container.width()) * 100;
 
-    console.log('left', left, 'width', width, 'height', height);
     cropArea.style.width = `${width}%`;
     cropArea.style.height = `${height}%`;
     cropArea.style.left = `${left}px`;
   }
 
-  /* ***************************************************************************
-  * Mouseup events
-  ******************************************************************************/
+  /**
+   * Callback handler for when the user releases the crop area
+   * @event {Event} - A mouse event
+   **/
   function cropAreaMouseUp() {
-    console.log('crop area mouseup happened');
-
     const {
       offsetLeft, offsetTop, offsetWidth, offsetHeight, clientWidth, clientHeight,
     } = cropArea;
@@ -204,82 +209,79 @@ $(document).ready(() => {
     swx = offsetLeft;
     swy = offsetTop + offsetHeight;
 
-    console.log('mouseup croparea', nex, 'ney', ney, 'swx', swx, 'swy', swy);
-
     drawThumbnail(offsetLeft, offsetTop, clientWidth, clientHeight);
     document.removeEventListener('mousemove', cropAreaMouseMove);
   }
 
-  function neMouseUp(event) {
-    console.log('ne mouseup happened');
-
-    const { x, y } = event;
+  /**
+   * Callback handler for when the user releases the northeast crop target
+   * @event {Event} - A mouse event
+   **/
+  function neMouseUp() {
     const { offsetLeft, offsetTop, offsetWidth, clientHeight, clientWidth } = cropArea;
 
     mousedown = false;
     nex = offsetLeft + offsetWidth;
     ney = offsetTop;
 
-    console.log('mouseup nex', nex, 'ney', ney, 'x', x, 'y', y);
-
     drawThumbnail(offsetLeft, offsetTop, clientWidth, clientHeight);
-
     document.removeEventListener('mousemove', neMouseMove);
   }
 
-  function swMouseUp(event) {
-    console.log('sw mouseup happened');
-
-    const { x, y } = event;
+  /**
+   * Callback handler for when the user releases the southwest crop target
+   * @event {Event} - A mouse event
+   **/
+  function swMouseUp() {
     const { offsetLeft, offsetTop, offsetHeight, clientHeight, clientWidth } = cropArea;
 
     mousedown = false;
     swx = offsetLeft;
     swy = offsetTop + offsetHeight;
 
-    console.log('mouseup swx', swx, 'swy', swy, 'x', x, 'y', y);
-
     drawThumbnail(offsetLeft, offsetTop, clientWidth, clientHeight);
-
     document.removeEventListener('mousemove', swMouseMove);
   }
 
+  /**
+   * Callback handler for when the user presses down on the southwest crop target
+   * @event {Event} - A mouse event
+   **/
   function swMouseDown(event) {
-    console.log('sw mousedown happened');
-
     event.preventDefault();
     event.stopImmediatePropagation();
     const { x, y } = event;
 
-    // Update variables used for calculation
     startX = x;
     startY = y;
     mousedown = true;
 
-    console.log('sw', 'startX', startX, 'startY', startY, 'mousedown', mousedown);
     document.addEventListener('mousemove', swMouseMove);
     document.addEventListener('mouseup', swMouseUp, { once: true });
   }
 
+  /**
+   * Callback handler for when the user presses down on the northeast crop target
+   * @event {Event} - A mouse event
+   **/
   function neMouseDown(event) {
-    console.log('ne mousedown happened');
-
     event.preventDefault();
     event.stopImmediatePropagation();
     const { x, y } = event;
 
-    // Update variables used for calculation
     startX = x;
     startY = y;
     mousedown = true;
 
-    console.log('ne', 'startX', startX, 'startY', startY, 'mousedown', mousedown);
     document.addEventListener('mousemove', neMouseMove);
     document.addEventListener('mouseup', neMouseUp, { once: true });
   }
 
+  /**
+   * Callback handler for when the user presses down on the croparea
+   * @event {Event} - A mouse event
+   **/
   function cropAreaMouseDown(event) {
-    console.log('crop area mousedown happened');
     event.preventDefault();
     event.stopImmediatePropagation();
     const { x, y } = event;
@@ -297,11 +299,11 @@ $(document).ready(() => {
   ****************************************************************************/
   cropButton.addEventListener('click', () => {
     alert(`
-      North West coordinates: ${swx}, ${ney}\n
-      North East coordiantes: ${nex}, ${ney}\n
-      South West coordiantes: ${swx}, ${swy}\n
-      South East coordiantes: ${nex}, ${swy}\n
-      Width: ${nex - swx}\n
+      Northwest coordinates: ${swx}, ${ney}
+      Northeast coordiantes: ${nex}, ${ney}
+      Southwest coordiantes: ${swx}, ${swy}
+      Southeast coordiantes: ${nex}, ${swy}\n
+      Width: ${nex - swx}
       Height: ${swy - ney}
     `);
   });
@@ -311,5 +313,5 @@ $(document).ready(() => {
   ******************************************************************************/
   cropTargetNE.addEventListener('mousedown', neMouseDown, true);
   cropTargetSW.addEventListener('mousedown', swMouseDown, true);
-  cropArea.addEventListener('mousedown', cropAreaMouseDown, false);
+  cropArea.addEventListener('mousedown', cropAreaMouseDown);
 });
