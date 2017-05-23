@@ -1,3 +1,9 @@
+# Overview
+Simple tool to crop an image
+
+# Demo
+http://yarunluon.github.io/simplecrop/simplecrop.html
+
 # Set node version
 Need to install XCode and nvm first
 ```
