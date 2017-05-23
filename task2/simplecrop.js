@@ -32,6 +32,7 @@ $(document).ready(() => {
 *       the boundaries of the crop area is sufficient.
 */
 
+  const $body = $('body');
   const $canvas = $('#cropimg');
   const $container = $('.container');
   const cropButton = document.querySelector('button.docrop');
@@ -39,14 +40,17 @@ $(document).ready(() => {
   const cropTargetSW = document.querySelector('.resize.sw');
   const cropArea = document.querySelector('.croparea');
   const context = $canvas.get(0).getContext('2d');
-  const marginLeft = parseInt($container.css('margin-left'), 10);
+  const marginLeft = parseInt($container.css('margin-left'), 10) + parseInt($body.css('margin-left'), 10);
   const marginTop = parseInt($container.css('margin-top'), 10);
   const minWidth = 30;
   const minHeight = 30;
+  const borderLeft = parseInt($(cropArea).css('border-left-width'), 10);
 
   // Initial starting value of mouse
   let startX = 0;
   let startY = 0;
+  let offsetX = 0;
+  let offsetY = 0;
 
   // Cropbox coordinates
   let nex = $container.width();
@@ -140,7 +144,7 @@ $(document).ready(() => {
     const { offsetLeft, offsetHeight, offsetTop } = cropArea;
 
     // Top
-    const topLower = y - marginTop;
+    const topLower = (y + offsetY) - marginTop;
     const topUpper = (offsetHeight + offsetTop) - minHeight;
     const top = Math.min(topUpper, Math.max(0, topLower));
 
@@ -151,8 +155,11 @@ $(document).ready(() => {
     // Width
     const rightLower = marginLeft + offsetLeft + minWidth;
     const rightUpper = marginLeft + $container.width();
-    const rightBoundry = Math.max(rightLower, Math.min(x, rightUpper));
+    const rightBoundry = Math.max(rightLower, Math.min(x + offsetX, rightUpper));
     const width = ((rightBoundry - marginLeft - offsetLeft) / $container.width()) * 100;
+
+    startX = x;
+    startY = y;
 
     cropArea.style.width = `${width}%`;
     cropArea.style.height = `${height}%`;
@@ -176,13 +183,13 @@ $(document).ready(() => {
 
     // Left
     const leftUpper = (offsetLeft + offsetWidth) - minWidth;
-    const leftLower = x - marginLeft;
+    const leftLower = (x + offsetX) - marginLeft;
     const left = Math.min(Math.max(0, leftLower), leftUpper);
 
     // Height
     const bottomLower = marginTop + $container.height();
     const bottomUpper = marginTop + offsetTop + minHeight;
-    const bottomBoundry = Math.max(bottomUpper, Math.min(y, bottomLower));
+    const bottomBoundry = Math.max(bottomUpper, Math.min((y + offsetY), bottomLower));
     const height = ((bottomBoundry - marginTop - offsetTop) / $container.height()) * 100;
 
     // Width
@@ -251,10 +258,16 @@ $(document).ready(() => {
     event.preventDefault();
     event.stopImmediatePropagation();
     const { x, y } = event;
+    const { offsetLeft, offsetTop, offsetHeight } = cropArea;
 
     startX = x;
     startY = y;
     mousedown = true;
+
+    const centerX = offsetLeft + marginLeft + borderLeft;
+    const centerY = offsetTop + offsetHeight + marginTop;
+    offsetX = centerX - x;
+    offsetY = centerY - y;
 
     document.addEventListener('mousemove', swMouseMove);
     document.addEventListener('mouseup', swMouseUp, { once: true });
@@ -268,10 +281,16 @@ $(document).ready(() => {
     event.preventDefault();
     event.stopImmediatePropagation();
     const { x, y } = event;
+    const { offsetLeft, offsetTop, offsetWidth } = cropArea;
 
     startX = x;
     startY = y;
     mousedown = true;
+
+    const centerX = offsetLeft + offsetWidth + marginLeft + borderLeft;
+    const centerY = offsetTop + marginTop;
+    offsetX = centerX - x;
+    offsetY = centerY - y;
 
     document.addEventListener('mousemove', neMouseMove);
     document.addEventListener('mouseup', neMouseUp, { once: true });
