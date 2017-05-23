@@ -35,8 +35,8 @@ function sizeimage(canvasWidth, canvasHeight, imageAspect) {
 
   const sizex = Math.max(canvasWidth, imagex);
   const sizey = Math.max(canvasHeight, imagey);
-  const xpos = (sizex - canvasWidth) / 2;
-  const ypos = (sizey - canvasHeight) / 2;
+  const xpos = (canvasWidth - sizex) / 2;
+  const ypos = (canvasHeight - sizey) / 2;
 
   // final image position and size
   return [xpos, ypos, sizex, sizey];
